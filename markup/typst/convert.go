@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/gohugoio/hugo/common/types"
 	"github.com/gohugoio/hugo/htesting"
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/converter"
@@ -33,17 +34,32 @@ var Provider converter.ProviderProvider = provider{}
 type provider struct{}
 
 func (p provider) New(cfg converter.ProviderConfig) (converter.Provider, error) {
+	typstCfg := cfg.MarkupConfig().Typst
+	var wm *watchManager
+	if shouldUseWatch(cfg, typstCfg) {
+		m, err := newWatchManager(cfg, typstCfg)
+		if err != nil {
+			return nil, err
+		}
+		wm = m
+		if cfg.BuildClosers != nil {
+			cfg.BuildClosers.Add(types.CloserFunc(m.Close))
+		}
+	}
+
 	return converter.NewProvider("typst", func(ctx converter.DocumentContext) (converter.Converter, error) {
 		return &typstConverter{
-			ctx: ctx,
-			cfg: cfg,
+			ctx:   ctx,
+			cfg:   cfg,
+			watch: wm,
 		}, nil
 	}), nil
 }
 
 type typstConverter struct {
-	ctx converter.DocumentContext
-	cfg converter.ProviderConfig
+	ctx   converter.DocumentContext
+	cfg   converter.ProviderConfig
+	watch *watchManager
 }
 
 func (c *typstConverter) Convert(ctx converter.RenderContext) (converter.ResultRender, error) {
@@ -78,14 +94,36 @@ func (c *typstConverter) getTypstContent(src []byte, ctx converter.DocumentConte
 	var out bytes.Buffer
 	var cmderr bytes.Buffer
 	runner := typstcli.New(c.cfg.Exec, cfg.Binary)
-	common := typstcli.CommonOptionsFromConfig(cfg, resolveRootDirectory(cfg.Root, ctx))
-	err := runner.Compile(typstcli.CompileOptions{
-		CommonOptions: common,
-		Format:        "html",
-		Pages:         cfg.Pages,
-		Stdin:         bytes.NewReader(src),
-		Stdout:        &out,
-		Stderr:        &cmderr,
+	world := typstcli.WorldArgsFromConfig(cfg, resolveRootDirectory(cfg.Root, ctx))
+	process := typstcli.ProcessArgsFromConfig(cfg)
+	process.Features = []typstcli.Feature{typstcli.FeatureHTML}
+
+	if c.watch != nil && ctx.Filename != "" {
+		content, err := c.watch.render(ctx.Filename, world, process)
+		if err == nil {
+			if len(content) == 0 {
+				logger.Warnf("%s watch rendered no output for %s, falling back to compile", cfg.Binary, ctx.DocumentName)
+			} else {
+				clean := stripHTMLDocument(content)
+				return normalizeExternalHelperLineFeeds(clean), nil
+			}
+		} else {
+			logger.Warnf("%s watch failed for %s: %v; falling back to compile", cfg.Binary, ctx.DocumentName, err)
+		}
+	}
+
+	err := runner.Compile(typstcli.CompileArgs{
+		Input:   typstcli.InputStdin,
+		Output:  typstcli.OutputStdout,
+		Format:  typstcli.OutputFormatHTML,
+		World:   world,
+		Pages:   pagesFromConfig(cfg.Pages),
+		Process: process,
+		Exec: typstcli.ExecOptions{
+			Stdin:  bytes.NewReader(src),
+			Stdout: &out,
+			Stderr: &cmderr,
+		},
 	})
 	if err != nil {
 		if cmderr.Len() > 0 {
@@ -103,6 +141,14 @@ func (c *typstConverter) getTypstContent(src []byte, ctx converter.DocumentConte
 
 	clean := stripHTMLDocument(out.Bytes())
 	return normalizeExternalHelperLineFeeds(clean), nil
+}
+
+func pagesFromConfig(v string) []string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return nil
+	}
+	return []string{v}
 }
 
 func resolveRootDirectory(configuredRoot string, ctx converter.DocumentContext) string {

@@ -19,6 +19,7 @@ import (
 
 	"github.com/gohugoio/hugo/common/hexec"
 	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/types"
 	"github.com/gohugoio/hugo/config"
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/converter/hooks"
@@ -30,10 +31,11 @@ import (
 
 // ProviderConfig configures a new Provider.
 type ProviderConfig struct {
-	Conf      config.AllProvider // Project config
-	ContentFs afero.Fs
-	Logger    loggers.Logger
-	Exec      *hexec.Exec
+	Conf         config.AllProvider // Project config
+	ContentFs    afero.Fs
+	Logger       loggers.Logger
+	Exec         *hexec.Exec
+	BuildClosers types.CloseAdder
 	highlight.Highlighter
 }
 

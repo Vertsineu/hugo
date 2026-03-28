@@ -25,6 +25,7 @@ import (
 
 	"github.com/gohugoio/hugo/common/hexec"
 	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/types"
 	"github.com/gohugoio/hugo/media"
 
 	"github.com/spf13/afero"
@@ -45,16 +46,17 @@ type ContentSpec struct {
 
 // NewContentSpec returns a ContentSpec initialized
 // with the appropriate fields from the given config.Provider.
-func NewContentSpec(cfg config.AllProvider, logger loggers.Logger, contentFs afero.Fs, ex *hexec.Exec) (*ContentSpec, error) {
+func NewContentSpec(cfg config.AllProvider, logger loggers.Logger, contentFs afero.Fs, ex *hexec.Exec, buildClosers types.CloseAdder) (*ContentSpec, error) {
 	spec := &ContentSpec{
 		Cfg: cfg,
 	}
 
 	converterProvider, err := markup.NewConverterProvider(converter.ProviderConfig{
-		Conf:      cfg,
-		ContentFs: contentFs,
-		Logger:    logger,
-		Exec:      ex,
+		Conf:         cfg,
+		ContentFs:    contentFs,
+		Logger:       logger,
+		Exec:         ex,
+		BuildClosers: buildClosers,
 	})
 	if err != nil {
 		return nil, err

@@ -14,6 +14,11 @@
 // Package typst_config holds Typst-related configuration.
 package typst_config
 
+type WatchConfig struct {
+	Enabled bool
+	Timeout string
+}
+
 // Config configures the Typst converter.
 type Config struct {
 	Binary string
@@ -35,8 +40,13 @@ type Config struct {
 
 	Jobs  int
 	Pages string
+
+	Watch WatchConfig
 }
 
 var Default = Config{
 	Binary: "typst",
+	Watch: WatchConfig{
+		Timeout: "3s",
+	},
 }

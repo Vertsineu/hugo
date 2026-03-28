@@ -136,14 +136,18 @@ func (m *pageMetaSource) loadTypstMetadata(h *HugoSites) error {
 	var out bytes.Buffer
 	var cmderr bytes.Buffer
 	runner := typstcli.New(h.Deps.ExecHelper, cfg.Binary)
-	common := typstcli.CommonOptionsFromConfig(cfg, root)
-	err := runner.Query(typstcli.QueryOptions{
-		CommonOptions: common,
-		Input:         filename,
-		Selector:      "metadata",
-		Field:         "value",
-		Stdout:        &out,
-		Stderr:        &cmderr,
+	process := typstcli.ProcessArgsFromConfig(cfg)
+	process.Features = []typstcli.Feature{typstcli.FeatureHTML}
+	err := runner.Query(typstcli.QueryArgs{
+		Input:    typstcli.Input(filename),
+		Selector: "metadata",
+		Field:    "value",
+		World:    typstcli.WorldArgsFromConfig(cfg, root),
+		Process:  process,
+		Exec: typstcli.ExecOptions{
+			Stdout: &out,
+			Stderr: &cmderr,
+		},
 	})
 	if err != nil {
 		if cmderr.Len() > 0 {

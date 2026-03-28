@@ -47,6 +47,10 @@ func TestConfig(t *testing.T) {
 				"ignoreSystemFonts": true,
 				"jobs":              2,
 				"pages":             "1-3",
+				"watch": map[string]any{
+					"enabled": true,
+					"timeout": "3s",
+				},
 			},
 		})
 
@@ -66,6 +70,8 @@ func TestConfig(t *testing.T) {
 		c.Assert(conf.Typst.IgnoreSystemFonts, qt.Equals, true)
 		c.Assert(conf.Typst.Jobs, qt.Equals, 2)
 		c.Assert(conf.Typst.Pages, qt.Equals, "1-3")
+		c.Assert(conf.Typst.Watch.Enabled, qt.Equals, true)
+		c.Assert(conf.Typst.Watch.Timeout, qt.Equals, "3s")
 	})
 
 	// We changed the typographer extension config from a bool to a struct in 0.112.0.

@@ -14,6 +14,7 @@
 package typstcli
 
 import (
+	"context"
 	"errors"
 	"io"
 	"testing"
@@ -28,56 +29,61 @@ func TestRunnerCompile(t *testing.T) {
 	exec := &captureExec{}
 	r := New(exec, "typst")
 
-	err := r.Compile(CompileOptions{
-		CommonOptions: CommonOptions{
-			Root:                "/project",
-			Inputs:              map[string]string{"b": "2", "a": "1"},
-			FontPaths:           []string{"/fonts1", "/fonts2"},
-			IgnoreSystemFonts:   true,
-			IgnoreEmbeddedFonts: true,
-			PackagePath:         "/pkg",
-			PackageCachePath:    "/pkg-cache",
-			Jobs:                3,
+	err := r.Compile(CompileArgs{
+		Input:  InputStdin,
+		Output: OutputStdout,
+		Format: OutputFormatHTML,
+		World: WorldArgs{
+			Root:   "/project",
+			Inputs: []SysInput{{Key: "b", Value: "2"}, {Key: "a", Value: "1"}},
+			Font: FontArgs{
+				FontPaths:           []string{"/fonts1", "/fonts2"},
+				IgnoreSystemFonts:   true,
+				IgnoreEmbeddedFonts: true,
+			},
+			Package: PackageArgs{
+				PackagePath:      "/pkg",
+				PackageCachePath: "/pkg-cache",
+			},
 		},
-		Pages:  "1-2",
-		Format: "html",
+		Pages: []string{"1-2"},
+		Process: ProcessArgs{
+			Jobs:             3,
+			Features:         []Feature{FeatureHTML},
+			DiagnosticFormat: DiagnosticFormatHuman,
+		},
 	})
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(exec.name, qt.Equals, "typst")
 	c.Assert(extractStrings(exec.args), qt.DeepEquals, []string{
 		"compile",
+		"-f", "html",
 		"--root", "/project",
-		"--input", "a=1",
 		"--input", "b=2",
+		"--input", "a=1",
 		"--font-path", "/fonts1:/fonts2",
 		"--ignore-system-fonts",
 		"--ignore-embedded-fonts",
 		"--package-path", "/pkg",
 		"--package-cache-path", "/pkg-cache",
-		"-j", "3",
 		"--pages", "1-2",
-		"-f", "html",
+		"-j", "3",
 		"--features", "html",
 		"--diagnostic-format", "human",
 		"-", "-",
 	})
 }
 
-func TestRunnerCompileAddsFeaturesHTML(t *testing.T) {
+func TestRunnerCompileValidation(t *testing.T) {
 	c := qt.New(t)
-	exec := &captureExec{}
-	r := New(exec, "typst")
+	r := New(&captureExec{}, "typst")
 
-	err := r.Compile(CompileOptions{Format: "pdf"})
-	c.Assert(err, qt.IsNil)
-	c.Assert(extractStrings(exec.args), qt.DeepEquals, []string{
-		"compile",
-		"-f", "pdf",
-		"--features", "html",
-		"--diagnostic-format", "human",
-		"-", "-",
-	})
+	err := r.Compile(CompileArgs{})
+	c.Assert(err, qt.ErrorMatches, "typst compile input is required")
+
+	err = r.Compile(CompileArgs{Input: InputStdin})
+	c.Assert(err, qt.ErrorMatches, "typst compile output is required when input is stdin")
 }
 
 func TestRunnerQuery(t *testing.T) {
@@ -85,14 +91,17 @@ func TestRunnerQuery(t *testing.T) {
 	exec := &captureExec{}
 	r := New(exec, "typst")
 
-	err := r.Query(QueryOptions{
-		CommonOptions: CommonOptions{
-			Root:   "/project",
-			Inputs: map[string]string{"k": "v"},
-		},
-		Input:    "/project/a.typ",
+	err := r.Query(QueryArgs{
+		Input:    Input("/project/a.typ"),
 		Selector: "metadata",
 		Field:    "value",
+		World: WorldArgs{
+			Root:   "/project",
+			Inputs: []SysInput{{Key: "k", Value: "v"}},
+		},
+		Process: ProcessArgs{
+			Features: []Feature{FeatureHTML},
+		},
 	})
 
 	c.Assert(err, qt.IsNil)
@@ -107,30 +116,87 @@ func TestRunnerQuery(t *testing.T) {
 	})
 }
 
+func TestRunnerQueryValidation(t *testing.T) {
+	c := qt.New(t)
+	r := New(&captureExec{}, "typst")
+
+	err := r.Query(QueryArgs{Selector: "metadata"})
+	c.Assert(err, qt.ErrorMatches, "typst query input is required")
+
+	err = r.Query(QueryArgs{Input: Input("doc.typ")})
+	c.Assert(err, qt.ErrorMatches, "typst query selector is required")
+}
+
 func TestRunnerRunCustomSubcommand(t *testing.T) {
 	c := qt.New(t)
 	exec := &captureExec{}
 	r := New(exec, "typst")
 
-	err := r.Run(CommandOptions{
+	err := r.Run(Command{
 		Subcommand: "watch",
-		Args:       []string{"doc.typ"},
-		TailArgs:   []string{"--open"},
+		Args:       []string{"doc.typ", "--open"},
 	})
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(extractStrings(exec.args), qt.DeepEquals, []string{"watch", "doc.typ", "--open"})
 }
 
+func TestRunnerWatch(t *testing.T) {
+	c := qt.New(t)
+	exec := &captureExec{}
+	r := New(exec, "typst")
+
+	err := r.Watch(WatchArgs{
+		Compile: CompileArgs{
+			Input:  Input("/project/a.typ"),
+			Output: Output("/tmp/a.html"),
+			Format: OutputFormatHTML,
+			Pages:  []string{"1-3"},
+			World: WorldArgs{
+				Root: "/project",
+			},
+			Process: ProcessArgs{
+				Features: []Feature{FeatureHTML},
+			},
+			Exec: ExecOptions{Context: context.Background()},
+		},
+		Server: ServerArgs{NoServe: true, NoReload: true},
+	})
+
+	c.Assert(err, qt.IsNil)
+	c.Assert(extractStrings(exec.args), qt.DeepEquals, []string{
+		"watch",
+		"-f", "html",
+		"--root", "/project",
+		"--pages", "1-3",
+		"--features", "html",
+		"--no-serve",
+		"--no-reload",
+		"/project/a.typ",
+		"/tmp/a.html",
+	})
+}
+
+func TestRunnerWatchValidation(t *testing.T) {
+	c := qt.New(t)
+	r := New(&captureExec{}, "typst")
+
+	err := r.Watch(WatchArgs{})
+	c.Assert(err, qt.ErrorMatches, "typst watch input is required")
+
+	err = r.Watch(WatchArgs{Compile: CompileArgs{Input: InputStdin}})
+	c.Assert(err, qt.ErrorMatches, "typst watch output is required when input is stdin")
+}
+
 func TestRunnerMissingSubcommand(t *testing.T) {
 	c := qt.New(t)
 	r := New(&captureExec{}, "typst")
 
-	err := r.Run(CommandOptions{})
+	err := r.Run(Command{})
 	c.Assert(err, qt.ErrorMatches, "typst subcommand is required")
 }
 
-func TestCommonOptionsFromConfig(t *testing.T) {
+func TestWorldArgsFromConfig(t *testing.T) {
 	c := qt.New(t)
 
 	cfg := typst_config.Config{
@@ -144,15 +210,20 @@ func TestCommonOptionsFromConfig(t *testing.T) {
 		Jobs:                2,
 	}
 
-	common := CommonOptionsFromConfig(cfg, "")
-	c.Assert(common.Root, qt.Equals, "/cfg-root")
-	c.Assert(common.Inputs, qt.DeepEquals, map[string]string{"a": "1"})
-	c.Assert(common.FontPaths, qt.DeepEquals, []string{"/f"})
+	world := WorldArgsFromConfig(cfg, "")
+	process := ProcessArgsFromConfig(cfg)
+
+	c.Assert(world.Root, qt.Equals, "/cfg-root")
+	c.Assert(world.Inputs, qt.DeepEquals, []SysInput{{Key: "a", Value: "1"}})
+	c.Assert(world.Font.FontPaths, qt.DeepEquals, []string{"/f"})
+	c.Assert(world.Package.PackagePath, qt.Equals, "/pkg")
+	c.Assert(world.Package.PackageCachePath, qt.Equals, "/cache")
+	c.Assert(process.Jobs, qt.Equals, 2)
 
 	cfg.Inputs["a"] = "2"
 	cfg.FontPaths[0] = "/changed"
-	c.Assert(common.Inputs["a"], qt.Equals, "1")
-	c.Assert(common.FontPaths[0], qt.Equals, "/f")
+	c.Assert(world.Inputs[0].Value, qt.Equals, "1")
+	c.Assert(world.Font.FontPaths[0], qt.Equals, "/f")
 }
 
 type captureExec struct {
