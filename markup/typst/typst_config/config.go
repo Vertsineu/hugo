@@ -27,7 +27,7 @@ type Config struct {
 	// FontPaths are additional directories searched for fonts.
 	FontPaths []string
 
-	IgnoreSystemFonts bool
+	IgnoreSystemFonts   bool
 	IgnoreEmbeddedFonts bool
 
 	PackagePath      string

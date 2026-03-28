@@ -11,22 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package typst converts Typst content to HTML using go-typst.
+// Package typst converts Typst content to HTML.
 package typst
 
 import (
 	"bytes"
-	"errors"
 	"path/filepath"
 	"strings"
 
-	gotypst "github.com/Dadido3/go-typst"
 	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/loggers"
 	"github.com/gohugoio/hugo/htesting"
 	"github.com/gohugoio/hugo/identity"
 	"github.com/gohugoio/hugo/markup/converter"
 	"github.com/gohugoio/hugo/markup/typst/typst_config"
+	"github.com/gohugoio/hugo/markup/typst/typstcli"
 )
 
 // Provider is the package entry point.
@@ -77,31 +75,24 @@ func (c *typstConverter) getTypstContent(src []byte, ctx converter.DocumentConte
 		return nil, err
 	}
 
-	options := &gotypst.OptionsCompile{
-		Format: gotypst.OutputFormatHTML,
-	}
-	options.Root = resolveRootDirectory(cfg.Root, ctx)
-	if len(cfg.Inputs) > 0 {
-		options.Input = make(map[string]string, len(cfg.Inputs))
-		for k, v := range cfg.Inputs {
-			options.Input[k] = v
-		}
-	}
-	if len(cfg.FontPaths) > 0 {
-		options.FontPaths = append([]string(nil), cfg.FontPaths...)
-	}
-	options.IgnoreSystemFonts = cfg.IgnoreSystemFonts
-	options.IgnoreEmbeddedFonts = cfg.IgnoreEmbeddedFonts
-	options.PackagePath = cfg.PackagePath
-	options.PackageCachePath = cfg.PackageCachePath
-	options.Jobs = cfg.Jobs
-	options.Pages = cfg.Pages
-
 	var out bytes.Buffer
-	caller := gotypst.CLI{ExecutablePath: cfg.Binary}
-	if err := caller.Compile(bytes.NewReader(src), &out, options); err != nil {
-		logDetails(logger, ctx.DocumentName, err)
-		logger.Errorf("%s rendering %s: %v", cfg.Binary, ctx.DocumentName, err)
+	var cmderr bytes.Buffer
+	runner := typstcli.New(c.cfg.Exec, cfg.Binary)
+	common := typstcli.CommonOptionsFromConfig(cfg, resolveRootDirectory(cfg.Root, ctx))
+	err := runner.Compile(typstcli.CompileOptions{
+		CommonOptions: common,
+		Format:        "html",
+		Pages:         cfg.Pages,
+		Stdin:         bytes.NewReader(src),
+		Stdout:        &out,
+		Stderr:        &cmderr,
+	})
+	if err != nil {
+		if cmderr.Len() > 0 {
+			logger.Errorf("%s rendering %s: %s", cfg.Binary, ctx.DocumentName, strings.TrimSpace(cmderr.String()))
+		} else {
+			logger.Errorf("%s rendering %s: %v", cfg.Binary, ctx.DocumentName, err)
+		}
 		return src, nil
 	}
 
@@ -126,25 +117,6 @@ func resolveRootDirectory(configuredRoot string, ctx converter.DocumentContext) 
 	}
 	return ""
 }
-
-func logDetails(logger loggers.Logger, doc string, err error) {
-	var terr *gotypst.Error
-	if !errors.As(err, &terr) {
-		return
-	}
-	for _, d := range terr.Details {
-		msg := strings.TrimSpace(d.Message)
-		if msg == "" {
-			continue
-		}
-		if d.Path != "" && d.Line > 0 {
-			logger.Errorf("%s: %s:%d:%d: %s", doc, d.Path, d.Line, d.Column, msg)
-			continue
-		}
-		logger.Errorf("%s: %s", doc, msg)
-	}
-}
-
 func normalizeExternalHelperLineFeeds(content []byte) []byte {
 	return bytes.Replace(content, []byte("\r"), []byte(""), -1)
 }

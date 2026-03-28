@@ -14,11 +14,14 @@
 package hugolib
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -40,6 +43,7 @@ import (
 	"github.com/gohugoio/hugo/markup/converter"
 	"github.com/gohugoio/hugo/markup/goldmark/hugocontext"
 	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/gohugoio/hugo/markup/typst/typstcli"
 	"github.com/gohugoio/hugo/parser/metadecoders"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/gohugoio/hugo/resources"
@@ -102,7 +106,79 @@ func (m *pageMetaSource) parseFrontMatter(
 		return err
 	}
 
+	if err := m.loadTypstMetadata(h); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (m *pageMetaSource) loadTypstMetadata(h *HugoSites) error {
+	if m.noFrontMatter || m.pi == nil || m.pi.frontMatter != nil || m.f == nil {
+		return nil
+	}
+	if !strings.EqualFold(m.f.Ext(), "typ") {
+		return nil
+	}
+
+	cfg := h.ContentSpec.Converters.GetMarkupConfig().Typst
+
+	filename := m.f.Filename()
+	if filename == "" {
+		return nil
+	}
+
+	root := cfg.Root
+	if root == "" {
+		root = filepath.Dir(filename)
+	}
+
+	var out bytes.Buffer
+	var cmderr bytes.Buffer
+	runner := typstcli.New(h.Deps.ExecHelper, cfg.Binary)
+	common := typstcli.CommonOptionsFromConfig(cfg, root)
+	err := runner.Query(typstcli.QueryOptions{
+		CommonOptions: common,
+		Input:         filename,
+		Selector:      "metadata",
+		Field:         "value",
+		Stdout:        &out,
+		Stderr:        &cmderr,
+	})
+	if err != nil {
+		if cmderr.Len() > 0 {
+			return fmt.Errorf("typst query metadata failed for %q: %s", m.f.Path(), strings.TrimSpace(cmderr.String()))
+		}
+		return fmt.Errorf("typst query metadata failed for %q: %w", m.f.Path(), err)
+	}
+
+	metadata, err := decodeTypstQueryMetadata(out.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to parse typst metadata for %q: %w", m.f.Path(), err)
+	}
+	if metadata == nil {
+		return nil
+	}
+
+	m.pi.frontMatter = metadata
+	return nil
+}
+
+func decodeTypstQueryMetadata(data []byte) (map[string]any, error) {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	var arr []map[string]any
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return nil, err
+	}
+	if len(arr) == 0 {
+		return nil, nil
+	}
+
+	return arr[0], nil
 }
 
 func (m *pageMeta) newCachedContent(s *Site) (*cachedContent, error) {
