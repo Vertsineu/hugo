@@ -209,6 +209,8 @@ func TestContentMediaTypeFromMarkup(t *testing.T) {
 		{"pandoc", "text/pandoc"},
 		{"pdc", "text/pandoc"},
 		{"rst", "text/rst"},
+		{"typst", "text/typst"},
+		{"typ", "text/typst"},
 	} {
 		var pc pagemeta.PageConfigEarly
 		pc.Content.Markup = test.in

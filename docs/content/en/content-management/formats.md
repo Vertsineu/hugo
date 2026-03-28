@@ -1,6 +1,6 @@
 ---
 title: Content formats
-description: Create your content using Markdown, HTML, Emacs Org Mode, AsciiDoc, Pandoc, or reStructuredText.
+description: Create your content using Markdown, HTML, Emacs Org Mode, AsciiDoc, Pandoc, reStructuredText, or Typst.
 categories: []
 keywords: []
 aliases: [/content/markdown-extras/,/content/supported-formats/,/doc/supported-formats/]
@@ -18,7 +18,8 @@ content/
     ├── post-3.org
     ├── post-4.pandoc
     ├── post-5.rst
-    └── post-6.html
+    ├── post-6.typ
+    └── post-7.html
 ```
 
 Regardless of content format, all content must have [front matter], preferably including both `title` and `date`.
@@ -121,6 +122,16 @@ Hugo passes these CLI flags when calling the rst2html executable:
 [Docutils]: https://docutils.sourceforge.io/
 [reStructuredText]: https://docutils.sourceforge.io/rst.html
 
+### Typst
+
+Create your content in the [Typst] format preceded by front matter. Hugo renders Typst content to HTML using [go-typst] and the Typst executable. You must install Typst to render the Typst content format.
+
+You can customize the Typst binary and additional compile arguments in your project configuration. See [Typst settings].
+
+[Typst]: https://typst.app/
+[go-typst]: https://github.com/Dadido3/go-typst
+[Typst settings]: /configuration/markup/#typst
+
 ## Classification
 
 {{% include "/_common/content-format-table.md" %}}
@@ -128,6 +139,6 @@ Hugo passes these CLI flags when calling the rst2html executable:
 When converting content to HTML, Hugo uses:
 
 - Native renderers for Markdown, HTML, and Emacs Org mode
-- External renderers for AsciiDoc, Pandoc, and reStructuredText
+- External renderers for AsciiDoc, Pandoc, reStructuredText, and Typst
 
 Native renderers are faster than external renderers.

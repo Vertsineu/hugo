@@ -28,7 +28,7 @@ To use a different renderer for Markdown files, specify one of `asciidocext`, `o
 `pandoc`|[Pandoc]
 `rst`|[reStructuredText]
 
-To use AsciiDoc, Pandoc, or reStructuredText you must install the relevant renderer and update your [security policy].
+To use AsciiDoc, Pandoc, reStructuredText, or Typst you must install the relevant renderer and update your [security policy].
 
 > [!note]
 > Unless you need a unique capability provided by one of the alternative Markdown handlers, we strongly recommend that you use the default setting. Goldmark is fast, well maintained, conforms to the [CommonMark] specification, and is compatible with [GitHub Flavored Markdown] (GFM).
@@ -304,6 +304,24 @@ Run `hugo build --logLevel debug` to examine Hugo's call to the Asciidoctor exec
 INFO 2019/12/22 09:08:48 Rendering book-as-pdf.adoc with C:\Ruby26-x64\bin\asciidoctor.bat using asciidoc args [--no-header-footer -r asciidoctor-html5s -b html5s -r asciidoctor-diagram --base-dir D:\prototypes\hugo_asciidoc_ddd\docs -a outdir=D:\prototypes\hugo_asciidoc_ddd\build -] ...
 ```
 
+## Typst
+
+This is the default configuration for the Typst renderer:
+
+{{< code-toggle file=hugo >}}
+[markup.typst]
+binary = "typst"
+args = []
+{{< /code-toggle >}}
+
+### Typst settings explained
+
+binary
+: (`string`) Typst executable name. Default is `typst`.
+
+args
+: (`[]string`) Additional CLI arguments passed to `typst compile`. Hugo configures HTML output automatically.
+
 ## Highlight
 
 This is the default configuration.
@@ -363,3 +381,4 @@ ordered
 [security policy]: /configuration/security/
 [subscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/sub
 [superscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/sup
+[Typst]: https://typst.app/

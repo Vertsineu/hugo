@@ -8,7 +8,7 @@ keywords: []
 
 {{< new-in 0.144.0 />}}
 
-Hugo supports six [content formats](g):
+Hugo supports seven [content formats](g):
 
 {{% include "/_common/content-format-table.md" %}}
 
@@ -26,19 +26,20 @@ content/
     ├── d.org     <-- resource (resource type: page)
     ├── e.pdc     <-- resource (resource type: page)
     ├── f.rst     <-- resource (resource type: page)
-    ├── g.jpg     <-- resource (resource type: image)
-    └── h.png     <-- resource (resource type: image)
+    ├── g.typ     <-- resource (resource type: page)
+    ├── h.jpg     <-- resource (resource type: image)
+    └── i.png     <-- resource (resource type: image)
 ```
 
-The `index.md` file is the page's content, while the other files are page resources. Files `a` through `f` are of resource type `page`, while `g` and `h` are of resource type `image`.
+The `index.md` file is the page's content, while the other files are page resources. Files `a` through `g` are of resource type `page`, while `h` and `i` are of resource type `image`.
 
 When you build a site, Hugo does not publish page resources having a resource type of `page`. For example, this is the result of building the site above:
 
 ```text
 public/
 ├── example/
-│   ├── g.jpg
-│   ├── h.png
+│   ├── h.jpg
+│   ├── i.png
 │   └── index.html
 └── index.html
 ```
@@ -60,4 +61,5 @@ contentTypes:
   text/org: {}
   text/pandoc: {}
   text/rst: {}
+  text/typst: {}
 {{< /code-toggle >}}

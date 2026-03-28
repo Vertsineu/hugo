@@ -24,6 +24,7 @@ import (
 	"github.com/gohugoio/hugo/markup/asciidocext"
 	"github.com/gohugoio/hugo/markup/pandoc"
 	"github.com/gohugoio/hugo/markup/rst"
+	"github.com/gohugoio/hugo/markup/typst"
 	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/dartsass"
 )
 
@@ -107,6 +108,23 @@ foo
 		_, err := TestE(c, files)
 		c.Assert(err, qt.IsNotNil)
 		c.Assert(err, qt.ErrorMatches, `(?s).*pandoc" is not whitelisted in policy "security\.exec\.allow".*`)
+	})
+
+	c.Run("Typst, denied", func(c *qt.C) {
+		c.Parallel()
+		if !typst.Supports() {
+			c.Skip()
+		}
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+-- content/page.typ --
+Hello
+`
+		_, err := TestE(c, files)
+		c.Assert(err, qt.IsNotNil)
+		c.Assert(err, qt.ErrorMatches, `(?s).*"typst" is not whitelisted in policy "security\.exec\.allow".*`)
 	})
 
 	c.Run("Dart SASS, OK", func(c *qt.C) {

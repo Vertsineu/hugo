@@ -17,7 +17,7 @@ When rendering Markdown to HTML, render hooks override the conversion. Each rend
 - [Tables](/render-hooks/tables)
 
 > [!note]
-> Hugo supports multiple [content formats] including Markdown, HTML, AsciiDoc, Emacs Org Mode, Pandoc, and reStructuredText.
+> Hugo supports multiple [content formats] including Markdown, HTML, AsciiDoc, Emacs Org Mode, Pandoc, reStructuredText, and Typst.
 >
 > The render hook capability is limited to Markdown. You cannot create render hooks for the other content formats.
 

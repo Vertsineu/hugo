@@ -39,6 +39,15 @@ func TestConfig(t *testing.T) {
 				"safeMode":             "save",
 				"extensions":           []string{"asciidoctor-html5s"},
 			},
+			"typst": map[string]any{
+				"binary":            "my-typst",
+				"root":              "/tmp/hugo",
+				"inputs":            map[string]string{"env": "test"},
+				"fontPaths":         []string{"assets/fonts"},
+				"ignoreSystemFonts": true,
+				"jobs":              2,
+				"pages":             "1-3",
+			},
 		})
 
 		conf, err := Decode(v)
@@ -50,6 +59,13 @@ func TestConfig(t *testing.T) {
 
 		c.Assert(conf.AsciiDocExt.WorkingFolderCurrent, qt.Equals, true)
 		c.Assert(conf.AsciiDocExt.Extensions[0], qt.Equals, "asciidoctor-html5s")
+		c.Assert(conf.Typst.Binary, qt.Equals, "my-typst")
+		c.Assert(conf.Typst.Root, qt.Equals, "/tmp/hugo")
+		c.Assert(conf.Typst.Inputs, qt.DeepEquals, map[string]string{"env": "test"})
+		c.Assert(conf.Typst.FontPaths, qt.DeepEquals, []string{"assets/fonts"})
+		c.Assert(conf.Typst.IgnoreSystemFonts, qt.Equals, true)
+		c.Assert(conf.Typst.Jobs, qt.Equals, 2)
+		c.Assert(conf.Typst.Pages, qt.Equals, "1-3")
 	})
 
 	// We changed the typographer extension config from a bool to a struct in 0.112.0.

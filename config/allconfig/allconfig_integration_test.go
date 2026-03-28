@@ -211,7 +211,7 @@ baseURL = "https://example.com"
 	s := ct.SourceStructure.(map[string]media.ContentTypeConfig)
 
 	b.Assert(c.IsContentFile("foo.md"), qt.Equals, true)
-	b.Assert(len(s), qt.Equals, 6)
+	b.Assert(len(s), qt.Equals, 7)
 }
 
 func TestMergeDeep(t *testing.T) {

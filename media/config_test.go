@@ -128,6 +128,7 @@ func TestDefaultTypes(t *testing.T) {
 		{Builtin.PandocType, "text", "pandoc", "pandoc,pdc", "text/pandoc", "text/pandoc"},
 		{Builtin.ReStructuredTextType, "text", "rst", "rst", "text/rst", "text/rst"},
 		{Builtin.AsciiDocType, "text", "asciidoc", "adoc,asciidoc,ad", "text/asciidoc", "text/asciidoc"},
+		{Builtin.TypstType, "text", "typst", "typ", "text/typst", "text/typst"},
 		{Builtin.JavascriptType, "text", "javascript", "js,jsm,mjs", "text/javascript", "text/javascript"},
 		{Builtin.TypeScriptType, "text", "typescript", "ts", "text/typescript", "text/typescript"},
 		{Builtin.TSXType, "text", "tsx", "tsx", "text/tsx", "text/tsx"},
@@ -151,5 +152,5 @@ func TestDefaultTypes(t *testing.T) {
 
 	}
 
-	c.Assert(len(DefaultTypes), qt.Equals, 44)
+	c.Assert(len(DefaultTypes), qt.Equals, 45)
 }

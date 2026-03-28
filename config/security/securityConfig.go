@@ -42,6 +42,7 @@ var DefaultConfig = Config{
 			"^node$",                     // Used as the runtime for Node tools.
 			"^postcss$",
 			"^tailwindcss$",
+			"^typst$", // Typst renderer
 		),
 		// These have been tested to work with Hugo's external programs
 		// on Windows, Linux and MacOS.
