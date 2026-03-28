@@ -152,11 +152,10 @@ func (r Runner) Compile(opts CompileOptions) error {
 	}
 	if opts.Format != "" {
 		tailArgs = append(tailArgs, "-f", opts.Format)
-		if opts.Format == "html" {
-			// HTML export is behind this feature flag for some Typst versions.
-			tailArgs = append(tailArgs, "--features", "html")
-		}
 	}
+
+	// Enable Typst's HTML feature for compile path.
+	tailArgs = append(tailArgs, "--features", "html")
 
 	tailArgs = append(tailArgs,
 		"--diagnostic-format", "human",
@@ -190,6 +189,7 @@ func (r Runner) Query(opts QueryOptions) error {
 		Subcommand: "query",
 		Args:       args,
 		Common:     opts.CommonOptions,
+		TailArgs:   []string{"--features", "html"},
 		Stdout:     opts.Stdout,
 		Stderr:     opts.Stderr,
 	})

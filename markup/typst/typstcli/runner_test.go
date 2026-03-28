@@ -64,6 +64,22 @@ func TestRunnerCompile(t *testing.T) {
 	})
 }
 
+func TestRunnerCompileAddsFeaturesHTML(t *testing.T) {
+	c := qt.New(t)
+	exec := &captureExec{}
+	r := New(exec, "typst")
+
+	err := r.Compile(CompileOptions{Format: "pdf"})
+	c.Assert(err, qt.IsNil)
+	c.Assert(extractStrings(exec.args), qt.DeepEquals, []string{
+		"compile",
+		"-f", "pdf",
+		"--features", "html",
+		"--diagnostic-format", "human",
+		"-", "-",
+	})
+}
+
 func TestRunnerQuery(t *testing.T) {
 	c := qt.New(t)
 	exec := &captureExec{}
@@ -87,6 +103,7 @@ func TestRunnerQuery(t *testing.T) {
 		"--field", "value",
 		"--root", "/project",
 		"--input", "k=v",
+		"--features", "html",
 	})
 }
 
