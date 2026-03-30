@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/gohugoio/hugo/markup/typst/typstcli"
 )
 
 func TestDecodeTypstQueryMetadata(t *testing.T) {
@@ -35,5 +36,36 @@ func TestDecodeTypstQueryMetadata(t *testing.T) {
 		m, err := decodeTypstQueryMetadata([]byte(`[]`))
 		c.Assert(err, qt.IsNil)
 		c.Assert(m, qt.IsNil)
+	})
+}
+
+func TestWithTypstMetadataQueryInput(t *testing.T) {
+	c := qt.New(t)
+
+	c.Run("AddMissing", func(c *qt.C) {
+		world := typstcli.WorldArgs{
+			Inputs: []typstcli.SysInput{{Key: "lang", Value: "en"}},
+		}
+
+		world = withTypstMetadataQueryInput(world)
+		c.Assert(world.Inputs, qt.DeepEquals, []typstcli.SysInput{
+			{Key: "lang", Value: "en"},
+			{Key: "query", Value: "prelude"},
+		})
+	})
+
+	c.Run("KeepExisting", func(c *qt.C) {
+		world := typstcli.WorldArgs{
+			Inputs: []typstcli.SysInput{
+				{Key: "query", Value: "custom"},
+				{Key: "lang", Value: "en"},
+			},
+		}
+
+		world = withTypstMetadataQueryInput(world)
+		c.Assert(world.Inputs, qt.DeepEquals, []typstcli.SysInput{
+			{Key: "query", Value: "custom"},
+			{Key: "lang", Value: "en"},
+		})
 	})
 }

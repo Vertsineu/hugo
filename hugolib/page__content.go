@@ -138,11 +138,13 @@ func (m *pageMetaSource) loadTypstMetadata(h *HugoSites) error {
 	runner := typstcli.New(h.Deps.ExecHelper, cfg.Binary)
 	process := typstcli.ProcessArgsFromConfig(cfg)
 	process.Features = []typstcli.Feature{typstcli.FeatureHTML}
+	world := typstcli.WorldArgsFromConfig(cfg, root)
+	world = withTypstMetadataQueryInput(world)
 	err := runner.Query(typstcli.QueryArgs{
 		Input:    typstcli.Input(filename),
 		Selector: "metadata",
 		Field:    "value",
-		World:    typstcli.WorldArgsFromConfig(cfg, root),
+		World:    world,
 		Process:  process,
 		Exec: typstcli.ExecOptions{
 			Stdout: &out,
@@ -166,6 +168,17 @@ func (m *pageMetaSource) loadTypstMetadata(h *HugoSites) error {
 
 	m.pi.frontMatter = metadata
 	return nil
+}
+
+func withTypstMetadataQueryInput(world typstcli.WorldArgs) typstcli.WorldArgs {
+	for _, in := range world.Inputs {
+		if in.Key == "query" {
+			return world
+		}
+	}
+
+	world.Inputs = append(world.Inputs, typstcli.SysInput{Key: "query", Value: "prelude"})
+	return world
 }
 
 func decodeTypstQueryMetadata(data []byte) (map[string]any, error) {
