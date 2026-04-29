@@ -119,6 +119,8 @@ foo
 		files := `
 -- hugo.toml --
 baseURL = "https://example.org"
+[security.exec]
+allow = ['^go$']
 -- content/page.typ --
 Hello
 `
