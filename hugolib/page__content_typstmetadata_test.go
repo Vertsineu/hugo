@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/gohugoio/hugo/markup/typst"
 	"github.com/gohugoio/hugo/markup/typst/typstcli"
 )
 
@@ -68,4 +69,38 @@ func TestWithTypstMetadataQueryInput(t *testing.T) {
 			{Key: "lang", Value: "en"},
 		})
 	})
+}
+
+func TestTypstMetadataRebuildErrorRecovery(t *testing.T) {
+	if !typst.Supports() {
+		t.Skip("typst not installed")
+	}
+
+	files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+disableLiveReload = true
+[security.exec]
+allow = ['^typst$']
+-- layouts/home.html --
+{{ range .Site.RegularPages }}{{ .RelPermalink }}|{{ end }}
+-- layouts/page.html --
+{{ .Title }}|{{ .Content }}|
+-- layouts/list.html --
+{{ .Kind }}|{{ range .Pages }}{{ .RelPermalink }}|{{ end }}
+-- content/posts/p1.typ --
+#metadata((
+  title: "P1",
+  tags: ("linux",),
+))
+
+= P1
+`
+
+	b := TestRunning(t, files, TestOptOsFs())
+
+	_, err := b.EditFileReplaceAll("content/posts/p1.typ", `tags: ("linux",),`, `tags: ("linux", ,),`).BuildE()
+	b.Assert(err, qt.ErrorMatches, `(?s).*typst query metadata failed.*unexpected comma.*`)
+
+	b.EditFileReplaceAll("content/posts/p1.typ", `tags: ("linux", ,),`, `tags: ("linux",),`).Build()
 }

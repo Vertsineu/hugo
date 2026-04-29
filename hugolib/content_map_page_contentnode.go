@@ -195,7 +195,14 @@ func (n contentNodes) forEeachContentNode(f func(v sitesmatrix.Vector, n content
 
 func (n contentNodes) lookupContentNode(v sitesmatrix.Vector) contentNode {
 	for _, nn := range n {
-		if vv := nn.(contentNodeLookupContentNode).lookupContentNode(v); vv != nil {
+		lookup, ok := nn.(contentNodeLookupContentNode)
+		if !ok {
+			if _, ok := nn.(*pageMetaSource); ok {
+				continue
+			}
+			panic(fmt.Sprintf("lookupContentNode: unknown type %T", nn))
+		}
+		if vv := lookup.lookupContentNode(v); vv != nil {
 			return vv
 		}
 	}
@@ -231,7 +238,14 @@ func (h helperContentNode) findContentNodeForSiteVector(q sitesmatrix.Vector, fa
 		// get stable output. This compare will also make sure that we pick
 		// language, version and role according to their individual sort order:
 		// Closer is better, and matches above are better than matches below.
-		if m := n.(contentNodeLookupContentNodes).lookupContentNodes(q, fallback); m != nil {
+		lookup, ok := n.(contentNodeLookupContentNodes)
+		if !ok {
+			if _, ok := n.(*pageMetaSource); ok {
+				continue
+			}
+			panic(fmt.Sprintf("findContentNodeForSiteVector: unknown type %T", n))
+		}
+		if m := lookup.lookupContentNodes(q, fallback); m != nil {
 			for nn := range m {
 				vec := nn.siteVector()
 				var w int
@@ -428,7 +442,13 @@ func (ps contentNodesMap) forEeachContentNode(f func(v sitesmatrix.Vector, n con
 
 func (n contentNodesMap) lookupContentNode(v sitesmatrix.Vector) contentNode {
 	if vv, ok := n[v]; ok {
-		return vv
+		if _, ok := vv.(contentNodeLookupContentNode); ok {
+			return vv
+		}
+		if _, ok := vv.(*pageMetaSource); ok {
+			return nil
+		}
+		panic(fmt.Sprintf("lookupContentNode: unknown type %T", vv))
 	}
 	return nil
 }

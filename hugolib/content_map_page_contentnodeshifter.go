@@ -156,6 +156,8 @@ func (s *contentNodeShifter) Shift(n contentNode, siteVector sitesmatrix.Vector,
 	switch v := n.(type) {
 	case contentNodeLookupContentNode:
 		exact = v.lookupContentNode(siteVector)
+	case *pageMetaSource:
+		return nil, false
 	default:
 		panic(fmt.Sprintf("Shift: unknown type %T for %q", n, n.Path()))
 	}
